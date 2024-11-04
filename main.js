@@ -8,6 +8,91 @@ function getTextOrBool(s) {
   return s;
 }
 
+function addCssClasses(table) {
+  let tableStandardVsPremium = false;
+  let tableStandardVsDeluxe = false;
+  let tableStandardVsEnterprise = false;
+  let tablePremiumVsDeluxe = false;
+  let tablePremiumVsEnterprise = false;
+  let tableDeluxeVsEnterprise = false;
+  let standardVsPremium = false;
+  let standardVsDeluxe = false;
+  let standardVsEnterprise = false;
+  let premiumVsDeluxe = false;
+  let premiumVsEnterprise = false;
+  let deluxeVsEnterprise = false;
+
+  table.allItems.forEach(item => {
+    if (item.standard !== item.premium) {
+      standardVsPremium = true;
+      tableStandardVsPremium = true;
+    }
+
+    if (item.standard !== item.deluxe) {
+      standardVsDeluxe = true;
+      tableStandardVsDeluxe = true;
+    }
+
+    if (item.standard !== item.enterprise) {
+      standardVsEnterprise = true;
+      tableStandardVsEnterprise = true;
+    }
+
+    if (item.premium !== item.deluxe) {
+      premiumVsDeluxe = true;
+      tablePremiumVsDeluxe = true;
+    }
+
+    if (item.premium !== item.enterprise) {
+      premiumVsEnterprise = true;
+      tablePremiumVsEnterprise = true;
+    }
+
+    if (item.deluxe !== item.enterprise) {
+      deluxeVsEnterprise = true;
+      tableDeluxeVsEnterprise = true;
+    }
+
+    item.cellClass = `${standardVsPremium ? "$cell_standard_vs_premium" : ""} ${
+      standardVsDeluxe ? "$cell_standard_vs_deluxe" : ""
+    } ${standardVsEnterprise ? "$cell_standard_vs_enterprise" : ""} ${
+      premiumVsDeluxe ? "$cell_premium_vs_deluxe" : ""
+    } ${premiumVsEnterprise ? "$cell_premium_vs_enterprise" : ""} ${
+      deluxeVsEnterprise ? "$cell_deluxe_vs_enterprise" : ""
+    }`;
+
+    item.rowClass = `${
+      standardVsPremium ||
+      standardVsDeluxe ||
+      standardVsEnterprise ||
+      premiumVsDeluxe ||
+      premiumVsEnterprise ||
+      deluxeVsEnterprise
+        ? "$row_difference"
+        : ""
+    }`;
+  });
+
+  table.tableClass = `
+    ${
+      tableStandardVsPremium ||
+      tableStandardVsDeluxe ||
+      tableStandardVsEnterprise ||
+      tablePremiumVsDeluxe ||
+      tablePremiumVsEnterprise ||
+      tableDeluxeVsEnterprise
+        ? "$table_desktop"
+        : ""
+    } ${tableStandardVsPremium ? "$table_standard_vs_premium" : ""} ${
+    tableStandardVsDeluxe ? "$table_standard_vs_deluxe" : ""
+  } ${tableStandardVsEnterprise ? "$table_standard_vs_enterprise" : ""} ${
+    tablePremiumVsDeluxe ? "$table_premium_vs_deluxe" : ""
+  } ${tablePremiumVsEnterprise ? "$table_premium_vs_enterprise" : ""} ${
+    tableDeluxeVsEnterprise ? "$table_deluxe_vs_enterprise" : ""
+  }
+  `;
+}
+
 function csvToPhpArray(inputFilePath, outputFilePath) {
   // Validate file existence and extension
   if (!fs.existsSync(inputFilePath)) {
@@ -25,47 +110,49 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
       .pipe(csv())
       .on("data", data => results.push(data))
       .on("end", () => {
-        const data = [];
+        const tables = [];
         let table = {};
         results.forEach((item, index) => {
           if (item.type === "heading") {
             // push table in data if not empty (first one)
             if (Object.keys(table).length > 0) {
-              data.push(table);
+              tables.push(table);
             }
             // reset table data
             table = {};
-            table.items = [];
-            table.heading = item.feature;
+            table.allItems = [];
+            table.heading = item["Feature"];
             table.kiBadge = item["ki_badge"] === "TRUE";
             table.newBadge = item["new_badge"] === "TRUE";
-            table.tableClass = item["table_class"];
           } else {
             // we're dealing with a row
             const newItem = {};
-            newItem.label = item["feature"];
-            newItem.tooltip = item["tooltip"];
-            newItem.standard = getTextOrBool(item["standard"]);
-            newItem.premium = getTextOrBool(item["premium"]);
-            newItem.deluxe = getTextOrBool(item["deluxe"]);
-            newItem.enterprise = getTextOrBool(item["enterprise"]);
-            newItem.rowClass = item["row_class"];
-            newItem.cellClass = item["cell_class"];
+            newItem.label = item["Feature"];
+            newItem.tooltip = item["Tooltip"];
+            newItem.standard = getTextOrBool(item["Standard"]);
+            newItem.premium = getTextOrBool(item["Premium"]);
+            newItem.deluxe = getTextOrBool(item["Deluxe"]);
+            newItem.enterprise = getTextOrBool(item["Enterprise"]);
             newItem.kiBadge = getTextOrBool(item["ki_badge"]);
             newItem.newBadge = getTextOrBool(item["new_badge"]);
-            table.items.push(newItem);
+            newItem.initiallyHidden = getTextOrBool(item["hide_on_mobile"]);
+
+            table.allItems.push(newItem);
           }
 
           if (index === results.length - 1) {
             // push the last table
             if (Object.keys(table).length > 0) {
-              data.push(table);
+              tables.push(table);
             }
           }
         });
 
         let php = "<?php\n$feature_tables = [";
-        data.forEach(table => {
+        tables.forEach(table => {
+          addCssClasses(table);
+          table.items = table.allItems.filter(item => !item.initiallyHidden);
+          table.itemsInitiallyHidden = table.allItems.filter(item => item.initiallyHidden);
           php += "[";
           php += `"heading" => "${table.heading}",
                   "ki_badge" => ${table.kiBadge},
@@ -90,7 +177,25 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
               "cell_class" => "${item.cellClass.trim()}"
             ],`;
           });
-          php += "]"; // close items
+          php += "],"; // close items
+          php += `"items_initially_hidden" => [\n`;
+          table.itemsInitiallyHidden.forEach(item => {
+            const standard = typeof item.standard === "boolean" ? item.standard : `"${item.standard}"`;
+            const premium = typeof item.premium === "boolean" ? item.premium : `"${item.premium}"`;
+            const deluxe = typeof item.deluxe === "boolean" ? item.deluxe : `"${item.deluxe}"`;
+            const enterprise = typeof item.enterprise === "boolean" ? item.enterprise : `"${item.enterprise}"`;
+            php += `[
+                "label" => "${item.label}",
+                "tooltip" => "${item.tooltip}",
+                "standard" => ${standard},
+                "premium" => ${premium},
+                "deluxe" => ${deluxe},
+                "enterprise" => ${enterprise},
+                "row_class" => "${item.rowClass.trim()}",
+                "cell_class" => "${item.cellClass.trim()}"
+              ],`;
+          });
+          php += "]"; // close item_initially_hidden
           php += "],"; // close table
         });
         php += "];"; // close $feature_tables
@@ -98,7 +203,6 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
         if (outputFilePath) {
           try {
             fs.writeFileSync(outputFilePath, php);
-            console.log(`PHP array written to ${outputFilePath}`);
           } catch (writeError) {
             reject(new Error(`Error writing to output file: ${writeError.message}`));
             return;
@@ -124,7 +228,6 @@ async function main() {
     const inputFilePath = process.argv[2];
     const outputFilePath = process.argv[3];
     const phpArray = await csvToPhpArray(inputFilePath, outputFilePath);
-    console.log(phpArray);
   } catch (error) {
     console.error(`Error: ${error.message}`);
     process.exit(1);
