@@ -93,6 +93,26 @@ function addCssClasses(table) {
   `;
 }
 
+function whitespaceHandler(stringOrBool) {
+  if (typeof stringOrBool === "boolean") {
+    return stringOrBool;
+  }
+
+  let s = stringOrBool;
+
+  s = s.replaceAll("z. B.", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("E-Mails", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("E-Mail", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("DSGVO-konform", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("%", "<span class='whitespace-nowrap'> $&</span>");
+  s = s.replaceAll("E-Mail-Builder", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("Campaign-Builder", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("Landingpage-Builder", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("„An primäre E-Mail-Adresse“", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("„An alle E-Mail-Adressen“", "<span class='whitespace-nowrap'>$&</span>");
+  return s;
+}
+
 function csvToPhpArray(inputFilePath, outputFilePath) {
   // Validate file existence and extension
   if (!fs.existsSync(inputFilePath)) {
@@ -127,12 +147,12 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
           } else {
             // we're dealing with a row
             const newItem = {};
-            newItem.label = item["Feature"];
-            newItem.tooltip = item["Tooltip"];
-            newItem.standard = getTextOrBool(item["Standard"]);
-            newItem.premium = getTextOrBool(item["Premium"]);
-            newItem.deluxe = getTextOrBool(item["Deluxe"]);
-            newItem.enterprise = getTextOrBool(item["Enterprise"]);
+            newItem.label = whitespaceHandler(item["Feature"]);
+            newItem.tooltip = whitespaceHandler(item["Tooltip"]);
+            newItem.standard = whitespaceHandler(getTextOrBool(item["Standard"]));
+            newItem.premium = whitespaceHandler(getTextOrBool(item["Premium"]));
+            newItem.deluxe = whitespaceHandler(getTextOrBool(item["Deluxe"]));
+            newItem.enterprise = whitespaceHandler(getTextOrBool(item["Enterprise"]));
             newItem.kiBadge = getTextOrBool(item["ki_badge"]);
             newItem.newBadge = getTextOrBool(item["new_badge"]);
             newItem.initiallyHidden = getTextOrBool(item["hide_on_mobile"]);
