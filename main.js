@@ -15,14 +15,15 @@ function addCssClasses(table) {
   let tablePremiumVsDeluxe = false;
   let tablePremiumVsEnterprise = false;
   let tableDeluxeVsEnterprise = false;
-  let standardVsPremium = false;
-  let standardVsDeluxe = false;
-  let standardVsEnterprise = false;
-  let premiumVsDeluxe = false;
-  let premiumVsEnterprise = false;
-  let deluxeVsEnterprise = false;
 
   table.allItems.forEach(item => {
+    let standardVsPremium = false;
+    let standardVsDeluxe = false;
+    let standardVsEnterprise = false;
+    let premiumVsDeluxe = false;
+    let premiumVsEnterprise = false;
+    let deluxeVsEnterprise = false;
+
     if (item.standard !== item.premium) {
       standardVsPremium = true;
       tableStandardVsPremium = true;
@@ -61,7 +62,7 @@ function addCssClasses(table) {
       deluxeVsEnterprise ? "$cell_deluxe_vs_enterprise" : ""
     }`;
 
-    item.rowClass = `${
+    item.rowClass =
       standardVsPremium ||
       standardVsDeluxe ||
       standardVsEnterprise ||
@@ -69,8 +70,7 @@ function addCssClasses(table) {
       premiumVsEnterprise ||
       deluxeVsEnterprise
         ? "$row_difference"
-        : ""
-    }`;
+        : "";
   });
 
   table.tableClass = `
@@ -168,12 +168,39 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
           }
         });
 
-        let php = "<?php\n$feature_tables = [";
+        let php = "<?php\n\n";
+
+        php += '$table_desktop = "features-table__table--different-desktop";\n';
+        php += '$table_standard_vs_premium = "features-table__table--different-standard-vs-premium";\n';
+        php += '$table_standard_vs_deluxe = "features-table__table--different-standard-vs-deluxe";\n';
+        php += '$table_standard_vs_enterprise = "features-table__table--different-standard-vs-enterprise";\n';
+        php += '$table_premium_vs_deluxe = "features-table__table--different-premium-vs-deluxe";\n';
+        php += '$table_premium_vs_enterprise = "features-table__table--different-premium-vs-enterprise";\n';
+        php += '$table_deluxe_vs_enterprise = "features-table__table--different-deluxe-vs-enterprise";\n';
+        php += '$row_difference = "features-table__row--different";\n';
+        php += '$cell_standard_vs_premium = "features-table__cell--different-standard-vs-premium";\n';
+        php += '$cell_standard_vs_deluxe = "features-table__cell--different-standard-vs-deluxe";\n';
+        php += '$cell_standard_vs_enterprise = "features-table__cell--different-standard-vs-enterprise";\n';
+        php += '$cell_premium_vs_deluxe = "features-table__cell--different-premium-vs-deluxe";\n';
+        php += '$cell_premium_vs_enterprise = "features-table__cell--different-premium-vs-enterprise";\n';
+        php += '$cell_deluxe_vs_enterprise = "features-table__cell--different-deluxe-vs-enterprise";\n';
+
+        php += `$features_total_count = ${tables.reduce((acc, table) => acc + table.allItems.length, 0)};\n`;
+        php += "$feature_tables = [\n";
+        tables.forEach(table => {
+          table.allItems.forEach(item => {
+            item.standard = typeof item.standard === "boolean" ? item.standard : `"${item.standard}"`;
+            item.premium = typeof item.premium === "boolean" ? item.premium : `"${item.premium}"`;
+            item.deluxe = typeof item.deluxe === "boolean" ? item.deluxe : `"${item.deluxe}"`;
+            item.enterprise = typeof item.enterprise === "boolean" ? item.enterprise : `"${item.enterprise}"`;
+          });
+        });
+
         tables.forEach(table => {
           addCssClasses(table);
           table.items = table.allItems.filter(item => !item.initiallyHidden);
           table.itemsInitiallyHidden = table.allItems.filter(item => item.initiallyHidden);
-          php += "[";
+          php += "[\n";
           php += `"heading" => "${table.heading}",
                   "ki_badge" => ${table.kiBadge},
                   "new_badge" => ${table.newBadge},
@@ -182,43 +209,39 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
           `;
 
           table.items.forEach(item => {
-            const standard = typeof item.standard === "boolean" ? item.standard : `"${item.standard}"`;
-            const premium = typeof item.premium === "boolean" ? item.premium : `"${item.premium}"`;
-            const deluxe = typeof item.deluxe === "boolean" ? item.deluxe : `"${item.deluxe}"`;
-            const enterprise = typeof item.enterprise === "boolean" ? item.enterprise : `"${item.enterprise}"`;
             php += `[
               "label" => "${item.label}",
               "tooltip" => "${item.tooltip}",
-              "standard" => ${standard},
-              "premium" => ${premium},
-              "deluxe" => ${deluxe},
-              "enterprise" => ${enterprise},
+              "standard" => ${item.standard},
+              "premium" => ${item.premium},
+              "deluxe" => ${item.deluxe},
+              "enterprise" => ${item.enterprise},
               "row_class" => "${item.rowClass.trim()}",
               "cell_class" => "${item.cellClass.trim()}"
-            ],`;
+            ],\n`;
           });
           php += "],"; // close items
           php += `"items_initially_hidden" => [\n`;
           table.itemsInitiallyHidden.forEach(item => {
-            const standard = typeof item.standard === "boolean" ? item.standard : `"${item.standard}"`;
-            const premium = typeof item.premium === "boolean" ? item.premium : `"${item.premium}"`;
-            const deluxe = typeof item.deluxe === "boolean" ? item.deluxe : `"${item.deluxe}"`;
-            const enterprise = typeof item.enterprise === "boolean" ? item.enterprise : `"${item.enterprise}"`;
             php += `[
                 "label" => "${item.label}",
                 "tooltip" => "${item.tooltip}",
-                "standard" => ${standard},
-                "premium" => ${premium},
-                "deluxe" => ${deluxe},
-                "enterprise" => ${enterprise},
+                "standard" => ${item.standard},
+                "premium" => ${item.premium},
+                "deluxe" => ${item.deluxe},
+                "enterprise" => ${item.enterprise},
                 "row_class" => "${item.rowClass.trim()}",
                 "cell_class" => "${item.cellClass.trim()}"
-              ],`;
+              ],\n`;
           });
-          php += "]"; // close item_initially_hidden
-          php += "],"; // close table
+          php += "]\n"; // close item_initially_hidden
+          php += "],\n"; // close table
         });
-        php += "];"; // close $feature_tables
+        php += "];\n"; // close $feature_tables
+        php += "return [\n";
+        php += '"feature_tables" => $feature_tables,\n';
+        php += '"features_total_count" => $features_total_count\n';
+        php += "];\n";
 
         if (outputFilePath) {
           try {
