@@ -216,6 +216,8 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
               "premium" => ${item.premium},
               "deluxe" => ${item.deluxe},
               "enterprise" => ${item.enterprise},
+              "ki_badge" => ${item.kiBadge},
+              "new_badge" => ${item.newBadge},
               "row_class" => "${item.rowClass.trim()}",
               "cell_class" => "${item.cellClass.trim()}"
             ],\n`;
@@ -230,6 +232,8 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
                 "premium" => ${item.premium},
                 "deluxe" => ${item.deluxe},
                 "enterprise" => ${item.enterprise},
+                "ki_badge" => ${item.kiBadge},
+                "new_badge" => ${item.newBadge},
                 "row_class" => "${item.rowClass.trim()}",
                 "cell_class" => "${item.cellClass.trim()}"
               ],\n`;
