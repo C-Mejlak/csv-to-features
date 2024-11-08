@@ -16,7 +16,7 @@ function addCssClasses(table) {
   let tablePremiumVsEnterprise = false;
   let tableDeluxeVsEnterprise = false;
 
-  table.allItems.forEach(item => {
+  table.items.forEach(item => {
     let standardVsPremium = false;
     let standardVsDeluxe = false;
     let standardVsEnterprise = false;
@@ -140,7 +140,7 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
             }
             // reset table data
             table = {};
-            table.allItems = [];
+            table.items = [];
             table.heading = item["Feature"];
             table.kiBadge = item["ki_badge"] === "TRUE";
             table.newBadge = item["new_badge"] === "TRUE";
@@ -157,7 +157,7 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
             newItem.newBadge = getTextOrBool(item["new_badge"]);
             newItem.initiallyHidden = getTextOrBool(item["hide_on_mobile"]);
 
-            table.allItems.push(newItem);
+            table.items.push(newItem);
           }
 
           if (index === results.length - 1) {
@@ -185,10 +185,10 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
         php += '$cell_premium_vs_enterprise = "features-table__cell--different-premium-vs-enterprise";\n';
         php += '$cell_deluxe_vs_enterprise = "features-table__cell--different-deluxe-vs-enterprise";\n';
 
-        php += `$features_total_count = ${tables.reduce((acc, table) => acc + table.allItems.length, 0)};\n`;
+        php += `$features_total_count = ${tables.reduce((acc, table) => acc + table.items.length, 0)};\n`;
         php += "$feature_tables = [\n";
         tables.forEach(table => {
-          table.allItems.forEach(item => {
+          table.items.forEach(item => {
             item.standard = typeof item.standard === "boolean" ? item.standard : `"${item.standard}"`;
             item.premium = typeof item.premium === "boolean" ? item.premium : `"${item.premium}"`;
             item.deluxe = typeof item.deluxe === "boolean" ? item.deluxe : `"${item.deluxe}"`;
@@ -198,8 +198,6 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
 
         tables.forEach(table => {
           addCssClasses(table);
-          table.items = table.allItems.filter(item => !item.initiallyHidden);
-          table.itemsInitiallyHidden = table.allItems.filter(item => item.initiallyHidden);
           php += "[\n";
           php += `"heading" => "${table.heading}",
                   "ki_badge" => ${table.kiBadge},
@@ -219,26 +217,11 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
               "ki_badge" => ${item.kiBadge},
               "new_badge" => ${item.newBadge},
               "row_class" => "${item.rowClass.trim()}",
-              "cell_class" => "${item.cellClass.trim()}"
+              "cell_class" => "${item.cellClass.trim()}",
+              "initially_hidden" => ${item.initiallyHidden}
             ],\n`;
           });
           php += "],"; // close items
-          php += `"items_initially_hidden" => [\n`;
-          table.itemsInitiallyHidden.forEach(item => {
-            php += `[
-                "label" => "${item.label}",
-                "tooltip" => "${item.tooltip}",
-                "standard" => ${item.standard},
-                "premium" => ${item.premium},
-                "deluxe" => ${item.deluxe},
-                "enterprise" => ${item.enterprise},
-                "ki_badge" => ${item.kiBadge},
-                "new_badge" => ${item.newBadge},
-                "row_class" => "${item.rowClass.trim()}",
-                "cell_class" => "${item.cellClass.trim()}"
-              ],\n`;
-          });
-          php += "]\n"; // close item_initially_hidden
           php += "],\n"; // close table
         });
         php += "];\n"; // close $feature_tables
