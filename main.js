@@ -101,15 +101,22 @@ function whitespaceHandler(stringOrBool) {
   let s = stringOrBool;
 
   s = s.replaceAll("z. B.", "<span class='whitespace-nowrap'>$&</span>");
-  s = s.replaceAll("E-Mails", "<span class='whitespace-nowrap'>$&</span>");
-  s = s.replaceAll("E-Mail", "<span class='whitespace-nowrap'>$&</span>");
   s = s.replaceAll("DSGVO-konform", "<span class='whitespace-nowrap'>$&</span>");
   s = s.replaceAll("%", "<span class='whitespace-nowrap'> $&</span>");
   s = s.replaceAll("E-Mail-Builder", "<span class='whitespace-nowrap'>$&</span>");
   s = s.replaceAll("Campaign-Builder", "<span class='whitespace-nowrap'>$&</span>");
   s = s.replaceAll("Landingpage-Builder", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("Trashmail-Domains", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("Message Identification", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("Bestätigungs-E-Mails", "<span class='whitespace-nowrap'>$&</span>");
   s = s.replaceAll("„An primäre E-Mail-Adresse“", "<span class='whitespace-nowrap'>$&</span>");
   s = s.replaceAll("„An alle E-Mail-Adressen“", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("DSGVO-Workflows", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("E-Mail-Adresse", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("E-Mail-Adressen", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("E-Mails", "<span class='whitespace-nowrap'>$&</span>");
+  s = s.replaceAll("E-Mail", "<span class='whitespace-nowrap'>$&</span>");
+
   return s;
 }
 
@@ -260,8 +267,8 @@ async function main() {
 
   try {
     // Convert CSV to PHP array
-    const inputFilePath = process.argv[2];
-    const outputFilePath = process.argv[3];
+    const inputFilePath = path.resolve(process.argv[2]);
+    const outputFilePath = path.resolve(process.argv[3]);
     await csvToPhpArray(inputFilePath, outputFilePath);
   } catch (error) {
     console.error(`Error: ${error.message}`);
