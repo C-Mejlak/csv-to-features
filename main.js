@@ -169,6 +169,11 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
         });
 
         let php = "<?php\n\n";
+        php += "// DO NOT manually modify this file.\n";
+        php += "// This file was generated using https://github.com/C-Mejlak/csv-to-features\n";
+        php +=
+          "// To make changes modify https://docs.google.com/spreadsheets/d/1vnX5QtyCgLZUGgU-lhkndyBzpuzbzUlOIRq5O26N9MI/edit?gid=1367493046#gid=1367493046 \n";
+        php += "// and run it through this script.\n\n";
 
         php += '$table_desktop = "features-table__table--different-desktop";\n';
         php += '$table_standard_vs_premium = "features-table__table--different-standard-vs-premium";\n';
@@ -257,7 +262,7 @@ async function main() {
     // Convert CSV to PHP array
     const inputFilePath = process.argv[2];
     const outputFilePath = process.argv[3];
-    const phpArray = await csvToPhpArray(inputFilePath, outputFilePath);
+    await csvToPhpArray(inputFilePath, outputFilePath);
   } catch (error) {
     console.error(`Error: ${error.message}`);
     process.exit(1);
