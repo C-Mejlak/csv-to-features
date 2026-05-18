@@ -8,6 +8,83 @@ function getTextOrBool(s) {
   return s;
 }
 
+/**
+ * Processes placeholder syntax in strings that need dynamic PHP values.
+ *
+ * Supported placeholders:
+ * - {{do_shortcode:SHORTCODE}} → do_shortcode('SHORTCODE')
+ * - {{var:VARNAME}}            → $VARNAME
+ *
+ * When a string contains placeholders mixed with static text, the output
+ * is a PHP concatenation expression (using the . operator). When there
+ * are no placeholders, the output is a simple double-quoted PHP string
+ * identical to the previous behaviour.
+ *
+ * Example CSV values and their PHP output:
+ *   "Hello World"
+ *     → '"Hello World"'
+ *   "{{var:count}} items"
+ *     → '$count . " items"'
+ *   "Prefix {{do_shortcode:[my-shortcode key="val"]}} suffix"
+ *     → '"Prefix " . do_shortcode(\'[my-shortcode key="val"]\') . " suffix"'
+ *   "{{do_shortcode:[my-shortcode key="val"]}}"
+ *     → 'do_shortcode(\'[my-shortcode key="val"]\')'
+ *
+ * Note: whitespaceHandler is applied BEFORE this function, so the
+ * placeholder content must not contain text that whitespaceHandler
+ * would modify (e.g. "E-Mail" would be wrapped in a span before
+ * this function sees it, breaking the placeholder). In practice,
+ * shortcode attributes use lowercase or quoted values, so this
+ * is not a concern for the current use cases.
+ */
+function processPlaceholders(str) {
+  if (typeof str !== "string") {
+    return { isDynamic: false, phpCode: str };
+  }
+
+  if (!str.includes("{{")) {
+    return { isDynamic: false, phpCode: `"${str}"` };
+  }
+
+  const segments = [];
+  const placeholderRegex = /\{\{(do_shortcode:.*?|var:\w+)\}\}/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = placeholderRegex.exec(str)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({ type: "static", value: str.substring(lastIndex, match.index) });
+    }
+
+    const placeholder = match[1];
+    if (placeholder.startsWith("do_shortcode:")) {
+      const shortcodeContent = placeholder.substring("do_shortcode:".length);
+      segments.push({ type: "do_shortcode", value: shortcodeContent });
+    } else if (placeholder.startsWith("var:")) {
+      const varName = placeholder.substring("var:".length);
+      segments.push({ type: "var", value: varName });
+    }
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < str.length) {
+    segments.push({ type: "static", value: str.substring(lastIndex) });
+  }
+
+  const phpParts = segments.map(seg => {
+    if (seg.type === "static") {
+      return `"${seg.value}"`;
+    } else if (seg.type === "do_shortcode") {
+      return `do_shortcode('${seg.value}')`;
+    } else if (seg.type === "var") {
+      return `$${seg.value}`;
+    }
+  });
+
+  return { isDynamic: true, phpCode: phpParts.join(" . ") };
+}
+
 function addCssClasses(table) {
   let tableStandardVsPremium = false;
   let tableStandardVsDeluxe = false;
@@ -197,6 +274,15 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
         php += '$cell_premium_vs_enterprise = "features-table__cell--different-premium-vs-enterprise";\n';
         php += '$cell_deluxe_vs_enterprise = "features-table__cell--different-deluxe-vs-enterprise";\n';
 
+        // Dynamic template counts — populated via WordPress shortcodes at runtime.
+        // These variables are referenced by {{var:...}} placeholders in the CSV data.
+        php += "\n";
+        php += "$templates_landingpage_total = do_shortcode('[get-custom-field key=\"klicktipp_bee_template_count_page\"]');\n";
+        php += "$templates_landingpage_total = str_replace([',', '.'], ['', ''], $templates_landingpage_total);\n";
+        php += "$templates_landingpage_total = (int)$templates_landingpage_total;\n";
+        php += "$templates_landingpage = 30;\n";
+        php += "$templates_landingpage_professional = $templates_landingpage_total - $templates_landingpage;\n";
+
         php += `$features_total_count = ${tables.reduce((acc, table) => acc + table.items.length, 0)};\n`;
         php += "$feature_tables = [\n";
         tables.forEach(table => {
@@ -219,9 +305,11 @@ function csvToPhpArray(inputFilePath, outputFilePath) {
           `;
 
           table.items.forEach(item => {
+            const labelPhp = processPlaceholders(item.label);
+            const tooltipPhp = processPlaceholders(item.tooltip);
             php += `[
-              "label" => "${item.label}",
-              "tooltip" => "${item.tooltip}",
+              "label" => ${labelPhp.phpCode},
+              "tooltip" => ${tooltipPhp.phpCode},
               "standard" => ${item.standard},
               "premium" => ${item.premium},
               "deluxe" => ${item.deluxe},
